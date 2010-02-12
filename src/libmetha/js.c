@@ -35,6 +35,7 @@ static JSBool __lm_js_http_post(JSContext *cx, JSObject *this, uintN argc, jsval
 static JSBool __lm_js_filesize(JSContext *cx, JSObject *this, uintN argc, jsval *argv, jsval *ret);
 static JSBool __lm_js_set_attribute(JSContext *cx, JSObject *this, uintN argc, jsval *argv, jsval *ret);
 static JSBool __lm_js_exec(JSContext *cx, JSObject *this, uintN argc, jsval *argv, jsval *ret);
+static JSBool __lm_js_fileout(JSContext *cx, JSObject *this, uintN argc, jsval *argv, jsval *ret);
 
 JSFunctionSpec lm_js_allfunctions[] = {
     {"print", __lm_js_print, 1},
@@ -44,6 +45,7 @@ JSFunctionSpec lm_js_allfunctions[] = {
     {"http_post", __lm_js_http_post, 2},
     {"filesize", __lm_js_filesize, 1},
     {"exec", __lm_js_exec, 1},
+    {"fileout", __lm_js_fileout, 2},
     {0}
 };
 
@@ -55,6 +57,27 @@ JSFunctionSpec lm_js_workerfunctions[] = {
     {"set_attribute", __lm_js_set_attribute, 2},
     {0}
 };
+
+JSBool
+__lm_js_fileout(JSContext *cx, JSObject *this, uintN argc, jsval *argv, jsval *ret)
+{
+    const char *filename;
+    const char *contents;
+    FILE *file;
+    
+    if (!JS_ConvertArguments(cx, argc, argv, "ss", &filename, &contents))
+        return JS_FALSE;
+    
+    file = fopen(filename, "w");
+    if (!file) {
+      fprintf(stderr, "Can't open file %s\n", filename);
+      return JS_FALSE;
+    }
+    fprintf(file, contents);
+    fclose(file);
+    
+    return JS_TRUE;
+}
 
 void
 lm_jserror(JSContext *cx, const char *message, JSErrorReport *report)
