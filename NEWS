@@ -1,0 +1,217 @@
+1.7.0
+=====
+We are proud to release  the  first  version  of Methabot featuring Methanol web
+crawling system. This release  features  the  two  new server daemons mn-masterd
+and mn-slaved, along with the new client daemon mb-clientd. These three together
+form a Methanol system, so you can now build your own customized distributed web
+crawling system, with all the features and goodies of libmetha integrated!
+
+From now on, Methabot will be released in the new Methanol package series.
+
+Please note that while this is a "stable" release, the server side programs 
+are still very experimental.
+
+You can read more about Methanol at the new website:
+http://metha-sys.org/
+
+The old website and wiki can still be found at:
+http://bithack.se/projects/methabot/
+
+Changes and new features:
+* Support for converting between character encodings through libiconv
+* New parser utf8conv for converting almost any character encoding to utf8
+* New  parser  entityconv,  converts  html   entities  such  as  &auml;  to  the
+  corresponding utf-8 character
+* The configuration system has been  moved to a seperate library, libmethaconfig
+* Various improvements to  the configuration  loader, such as dynamically adding
+  and changing classes and scopes
+* Lots of memory usage optimizations and cleanup fixes
+* The documentation available in the wiki has been copied to a texinfo file,
+  from now on all documentation will be put in this texinfo file and available
+  as a manual both online and offline
+* Support for  filetype attributes.  Parsers can now set custom data that will
+  be associated with a parsed file.  Attributes' primary area of use is when you
+  are connected to a Methanol system and want to store meta-data about a URL.
+* new Javascript  function set_attribute() for setting attributes for the
+  current URL
+* API support for custom status, error/warning and target reporter functions
+* lmetha_global_setopt() is no longer available, replaced with lmetha_setopt()
+  options
+* SpiderMonkey-1.8.0 support added
+* New global Javascript function exec()
+* New built-in handler function writefile
+* libmetha no longer depends on libev, but instead uses pipes and epoll() for
+  inter-thread communication and waiting for events on sockets.
+* Added internal counters useful for keeping statistics
+* New filetype option 'ignore_host'
+* --external option set to false can no longer be circumvented using a HTTP-
+  redirect
+* Support for CURIE (why not?) in the built-in HTML parser added
+* Bugfix, a syntax error would  in  some  rare  cases occur when parsing integer
+  values in configuration files
+* Bugfix in the configuration file parser when reading flag values
+* Bugfix, when javascript filetype parsers did not return a value, it was
+  treated as a string, "undefined", and used as a relative URL
+
+New Programs (Part of the Methanol System):
+* mb-clientd is  a version of the methabot client, running in the background and
+  communicating with a Methanol web crawling system
+* mn-slaved: a slave server  responsible  for  managing and collecting data from
+  client daemons
+* mn-masterd is the master server, responsible  for statistics and system-global
+  signaling
+
+Also:
+* phpMadMind is a web interface for administrating a Methanol system
+
+1.6.0
+=====
+Here comes another feature-packed  release  of  Methabot.  This release contains
+such fine new features as  Javascript-MySQL support, parser chaining support and
+better URL filtering with support for robots.txt.
+
+Changes and new features:
+* New configuration and  script  for  automatically  validating HTML/XHTML pages
+  through W3C's validator
+* The builtin HTML parser is now much more fault tolerant.
+* Modules can now register configuration file scopes and thus be configured from
+  configuration files.
+* Modules can register  objects  and  functions  that  will  be available to the
+  workers (javascript)
+* The load_module directive  is  now  available  so  the  user can manually load
+  modules.
+* Javascript-MySQL binding support through the new lmm_mysql loadable module.
+* New parser system with support for  parser chaining. Parsers are now protocol-
+  independent.
+* Support for handlers, the 'handler' filetype option, and the 'default_handler'
+  crawler option.
+* New configuration for searching Wikipedia.
+* Lots of multithreading optimization and performance improvements
+* New option --jail, -J
+* Robots Exclusion Standard support
+* New URL filtering system
+* Lots of improvements to the hostname caching
+* New configuration  xmlsource.conf,  converts  HTML  to  XHTML  and outputs the
+  converted data.
+* Improvements to piping data in and out of methabot
+* New configuration for finding RSS feeds on websites
+* Support for extracting URLs from CSS files and HTML style elements
+* Bugfix   when   linking    a   javascript    library    that  was  built  with
+  MOZILLA_1_8_BRANCH defined
+
+1.5.0
+=====
+This version contains many improvements, new features and bugfixes. Don't forget
+to check out the project's website! 
+ 
+Changes and new features: 
+* Support for reading intial buffer from stdin 
+* --type and --base-url command line options added, along with the
+  initial_filetype option in configuration files 
+* Cookies and DNS info is now properly shared between workers when running
+  multithreaded 
+* Added some example usage commands to --examples 
+* Big improvements to the inter-thread communication, now faster and more
+  organized 
+* Added support for 'init' functions to scripts. Read more about init functions
+  at http://bithack.se/projects/methabot/docs/e4x/init_functions.html 
+* libmetha doesn't freeze when doing multiple concurrent HTTP HEAD requests 
+  anymore. The reason for the freezes was a bug in libcurl which is now fixed.
+  Some workarounds have been added to libmetha to prevent the freezes from
+  occuring when using the defect libcurl versions aswell.  
+* Support for older libcurl versions 7.17.x and 7.16.x 
+* New information is available in the "this" object of javascript parsers,
+  content-type and transfer status code. Read more at
+  http://bithack.se/projects/methabot/docs/e4x/this.html 
+* --verbose option replaced with --silent, since verbose mode is now default 
+* Initial support for FTP crawling and the ftp_dir_url crawler option 
+* Depth limiting is now crawler-specific 
+* Added the command line options --crawler and --filetype 
+* Support for extending and overriding already defined crawlers and filetypes 
+* Support for the copy keyword in configuration files 
+* Support for dynamically switching the active crawler, this lets you crawl
+  different websites in completely different ways in one crawling session. Read
+  more about crawler switching at
+  http://bithack.se/projects/methabot/docs/crawler_switching.html 
+* libev version upgrade to 3.51 
+* The include directive in configuration files now makes sure the included
+  configuration file hasn't already been loaded, to prevent include-loops and
+  multiple filetype/crawler definitions. 
+* Various SpiderMonkey garbage collection fixes, libmetha does not crash anymore
+  when cleaning up after a multithreaded session 
+* Added some extra information to the --info option 
+* The 'external' option is now fixed and enabled again 
+* New option --spread-workers 
+* New libmetha API function lmetha_global_setopt() allows changing the global
+  error/message/warning reporter 
+* Added initial implementation of a test suite for developers 
+* Better error reporting when loading configuration files 
+* Bugfix when an HTTP server didn't return a Content-Type header after a HEAD
+  request 
+* Bugfix when sorting URLs after multiple HTTP HEAD requests 
+* Bugfix in the html to xml converter when the HTML page did not have an <html>
+  tag 
+* Bugfix, the extless-url option did not work 
+* Bugfix, html to xml converter no longer chokes on byte-order marks or other
+  text before the actual HTML  
+* Bugfix, prevented libmetha from trying to access URLs of protocols that are
+  not supported 
+* Bugfix when shutting down after an error. 
+* Bugfix, unresolvable URLs did not break out the retry loop after three retries
+* Very experimental and unstable support for Win32, mainly intended for
+  developers 
+ 
+New configuration files: 
+* google.conf, to perform google searches 
+* youtube.conf, youtube searching 
+* meta.conf, prints meta information such as keywords and description about HTML
+  pages 
+* title.conf, prints the title of HTML pages 
+* ftp.conf, for crawling FTP servers 
+ 
+Note: Support for crawling local filesystem is currently not available as we
+need to reconsider its design and how to integrate it with the parser and
+filetype system. 
+ 
+Check out the project website and wiki at http://bithack.se/projects/methabot/)
+
+1.4.1
+=====
+
+Time for a bugfix release. This release fixes lots of build-time errors related
+to SpiderMonkey on various systems. 
+ 
+Changes: 
+* Configure could not find jsapi.h on some systems, this should be fixed now. 
+* Configuration files are now able to modify crawler and filetype flags, added
+  the options 'external' and 'external_peek' 
+* Bugfix, Methabot would sometimes crash when cleaning up empty URLs after
+  multiple HTTP HEAD 
+* Fixed a crash that occurred when running synchronously. 
+* Build system include fix when jsconfig.h could not be found. 
+
+1.4.0
+=====
+
+After a long time of hardcore programming, Methabot/1.4.0 is finally ready for
+release. You will need libcurl and spidermonkey installed on your system to be
+able to compile Methabot. 
+ 
+New features: 
+* Completely new architectural design 
+* Filetype parser scripting through Javascript/E4X 
+* Multithreading is now a primary concept 
+* HTTP HEAD requests are now done asynchronously in a separate thread using curl
+  and libev 
+* Support for "peeking" at external URLs 
+* The Methabot Project has been split up into several subprojects, primarily
+  there's the command line tool, which uses the web crawling library libmetha as
+  its backend.  
+* Initial work on the distributed web crawling system Methanol. 
+ 
+So what to do now? Pick up a tutorial on Javascript with E4X and get started
+coding your own functions for extracting data from the web. 
+ 
+Check out the brand new Wiki at http://bithack.se/projects/methabot/ for more
+information! 
+

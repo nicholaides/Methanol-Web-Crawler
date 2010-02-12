@@ -1,0 +1,1501 @@
+\input texinfo   @c -*-texinfo-*-
+@c %**start of header
+@setfilename methanol.info
+@settitle Methanol Web Crawling System 1.7.0
+@c %**end of header
+
+@copying
+This manual is for Methanol Web Crawling System, version 1.7.0.
+
+Copyright @copyright{} 2008, 2009 Emil Romanus <sdac@@bithack.se>
+
+@quotation
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+@end quotation
+@end copying
+
+@titlepage
+@title Methanol Web Crawling System
+@subtitle Manual for the Methanol Web Crawling System, version 1.7.0.
+@author Emil Romanus
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+
+@shortcontents
+@contents
+
+@ifnottex
+@node Top
+@top Methanol 1.7.0
+@end ifnottex
+
+This manual is for the Methanol Web Crawling System, version 1.7.0.
+
+Understanding and running Methanol
+
+@menu
+* Introduction:: Introduction to Methanol.
+* Methanol Programs:: Get introduced to the programs included in the Methanol suite.
+* Installation:: How to install Methanol and its programs.
+* Post-Installation Setup and Testing:: Set Up and Test the Server Environment.
+@end menu
+
+Customization
+
+@menu
+* Configuration Files:: Basic to advanced configuration file topics.
+* Parsers:: Extract and parse data.
+* Scripting the Client:: Write your own logic.
+* System Hook Scripts:: Create hooks for various system events
+* Modules:: Module overview and C programming API.
+* Methanol Protocol:: For those who would like to understand the language of the daemons.
+@end menu
+
+Copying and license
+@menu
+* Copying::
+@end menu
+
+Appendices
+@menu
+* Robots Exclusion Standard:: Notes about robots.txt
+@c * Installing Dependencies::
+@end menu
+
+Indices
+@menu
+* Index::
+@end menu
+
+@node Introduction
+@chapter Introduction
+
+Methanol is a complete web crawling system aiming for optimal customizability.
+Methanol tries to be more than just a web crawling system, and gives you the 
+option to modify how and what data should should be indexed, processed and 
+ultimately displayed to the user.
+
+Methanol's primary point is its web crawler Methabot. Methabot has been thoroughly
+tested on thousands of different kinds of websites and website layouts. Methabot
+is powered by its underlying web crawling library @code{libmetha}.
+
+@section @code{libmetha} Feature Overview
+@itemize
+@item
+Speed-optimized architectural design
+@item
+Scriptable through Javascript with the E4X extension
+@item
+User-defined filetype filtering (according to MIME type, file extension or UMEX expression)
+@item
+Wide support for multi-threading (each thread is known as a worker)
+@item
+Extensible module system, supporting custom data parsers, filters and protocol handlers.
+@item
+Simple yet powerful filtering of URLs through UMEX.
+@item
+Support for automatic cookie handling when running over HTTP
+@item
+Robots Exclusion Standard
+@item
+Reliable, fault-tolerant networking, redirect-loop detection and some spider trap detection
+@item
+Parser chaining between different kinds of parsers, such as C and javascript parsers
+@item
+Simple and easy-to-use programming API
+@item
+HTML to XML/XHTML conversion
+@item
+Conversion between different character encodings, default encoding utf-8
+@end itemize
+
+@section Overview
+
+There are a few concepts that you should be familiar with when working with 
+Methanol systems. The probably most important thing to know is that a @code{crawler},
+in terms of the Methanol system, is not a @emph{function} or @emph{process}.
+A crawler is merely a set of rules as to how web pages and files are crawled.
+
+The actual process with threads crawling web pages or files should
+be refered to as a client with worker threads. Each worker may
+work independently on separate pages, but as long as they are running
+under the same process they share the same URL cache and set
+of rules.
+
+A worker will always be directly connected to a single crawler at once.
+However, depending on how the configuration file looks, the worker may
+dynamically switch to another crawler.
+
+The primary difference between any two crawlers is their lists of 
+filetypes. One crawler might for example have filetype definitions for HTML files,
+while another crawler might have filetype definitions for video files. The
+worker is restricted to its current crawler's list of filetypes.
+
+When a worker is running with a specific crawler, it might find URLs or data
+matching one of the crawler's filetypes. The filetype in turn can have @emph{parsers}
+and @emph{attributes}. A parser is in short a script or callback function that
+sets attributes. As an example, you could define a filetype named "HTML" with
+attributes such as "title" and "description". The parsers job is to extract data
+and set these attributes.
+
+When a client is connected to a Methanol system, data can be uploaded to the system
+if the attributes talked about above were set by a parser. Once the data
+has been uploaded, they will be available in the MySQL 
+database.
+
+@cindex introduction
+
+@node Methanol Programs
+@chapter Methanol Programs
+@cindex methanol, programs
+
+This chapter will introduce you to the various programs included in the 
+Methanol suite.
+
+@section @code{mb} -- Methabot Command Line Tool
+mb is short for Methabot. Methabot is a handy command line tool
+for fetching and extracting data from the web or local files.
+@subsection Invoking @code{mb}
+Get a list of available runtime options by invoking:
+@example
+$ mb --help
+@end example
+
+Another useful command to know is:
+@example
+$ mb --info
+@end example
+The above example will output a list of runtime information 
+about the installed version of Methabot. Most interesting is 
+the list of default configuration files that are installed.
+
+To load and use any default configuration file, a colon
+prefix is used. As an example, to load "archive", run:
+@example
+$ mb :archive
+@end example
+
+Merely loading a configuration will not do anything useful,
+but a URL must be provided. A URL can be provided on command
+line, any argument not beginning with "-" or ":" will be
+assumed to be a URL.
+@example
+$ mb :archive www.gnome.org
+@end example
+
+The above command will download and parse the front page of
+gnome.org, and print a list of all archive files found. 
+
+This behaviour is generally the default behaviour of methabot,
+provide it with one configuration and one URL, and it will 
+return a list of target URLs.
+
+@subsection @code{mb} command line options
+
+The easiest way of changing Methabot's behaviour is through
+command line. This way of configuring methabot is not as 
+flexible as by writing a configuration file, but it is still
+very powerful and most importantly easy.
+
+The following three sections will describe the three different
+kinds of command line configuration options available in Methabot.
+
+@subsubsection Crawler Options
+A crawler option affects how the crawling is performed,
+think of it as behaviour options. Methabot (and libmetha in general)
+is capable of having multiple crawlers defined, and 
+dynamically switching between crawlers at run time. The concept
+of crawler switching is however not covered in this chapter. 
+
+When configuring from command line, you will only be able to 
+configure and change one crawler. By default, this will be 
+the "default" crawler.
+
+@subsubsection Filetype Options
+Filetype options are used to define your own target filetype. 
+Unlike crawler options, filetype options does not affect an 
+already defined filetype, unless you use the @code{--filetype} option.
+
+@subsubsection General Options
+These options affect the runtime configuration in general, 
+such as how many workers (@pxref{Introduction, Worker}) to launch, proxy server 
+settings or the user agent to use.
+
+@section @code{mb-client} -- The Web Crawler Client
+The Methabot System Client (@code{mb-client}) is very similar to
+@code{mb}, but instead of communication with the user, @code{mb-client} 
+communicates with a Methanol system.
+
+@code{mb-client} can not be configured directly. It will always 
+receive its configuration from a master server. @code{mb-client} 
+only requires an IP-address to a master server when it is started.
+
+In order to give @code{mb-client} the login credentials to the 
+master server, it does however require a very minimal configuration file. 
+This file will usually be locate at @code{/etc/mb-client.conf} depending
+on where you have installed Methanol. You can also use a custom configuration
+file by providing it from command line.
+
+If a default configuration file does not exist, @code{mb-client}
+will attempt to connect to a master server running on 127.0.0.1:5505,
+username @emph{default} and password @emph{default}.
+
+@section @code{mn-masterd} -- The Master Server
+@code{mn-masterd}, also known as the master server, is the heart of
+a Methanol system. The purpose of the master is to distribute all 
+connected clients to slave servers, and to keep statistics and 
+configuration settings. The master is only required during system
+startup and when connecting new slaves or clients to the system. 
+Once the system is up and running, no master is required.
+
+When the master has been started it will listen for incoming connections,
+by default on port 5505, but that can be changed.
+
+@code{mn-masterd} loads its configuration settings from @code{mn-masterd.conf}.
+Normally this file is located at @code{/etc/mn-masterd.conf}. It is 
+also possible to give it another @code{mn-masterd.conf} using the
+@code{--config} command line option.
+
+Start @code{mn-masterd} by running the following command:
+@example
+$ mn-masterd
+@end example
+
+@code{mn-masterd} will fork and run in the background. You can stop it
+using @code{madmind} or by sending it the @code{INT} signal.
+
+@section @code{mn-slaved} -- The Slave Server
+@code{mn-slaved} is the layer between the client and the database. 
+@code{mn-slaved} manages clients, sessions, logging and runs system 
+script hooks.
+@section @code{madmind} -- Server Administration Tool
+
+@code{madmind} is a command line tool for communicating with the Master server.
+It is not available in this release, phpMadMind can be used instead.
+
+
+@node Installation
+@chapter Installation
+
+Methanol is a part of the @code{methabot} package. The latest @code{methabot} 
+packages includes all the source code required to build any specific part of 
+the system you should want.
+
+@section Building from source
+This section will describe how to compile and install Methanol. During this
+section of the manual, you will get to choose parts and configure your own
+installation depending on what programs in the Methanol suite you need.
+
+@subsection Package dependencies
+To compile Methanol successfully, you will need the following package dependencies
+installed on your system, depending on which parts you plan to install:
+
+@multitable @columnfractions .33 .33 .33
+@headitem Package                   @tab client-side@footnote{Those programs counted as client-side are @code{mb} and @code{mb-client}} @tab server-side@footnote{Those programs counted as server-side are @code{mn-masterd} and @code{mn-slaved}} 
+@item MySQL (libmysqlclient) >= 5.0 @tab no                   @tab yes
+@item libcurl >= 7.16.0             @tab yes                  @tab no
+@item SpiderMonkey >= 1.7.0         @tab yes                  @tab no
+@item libev                         @tab @emph{only mb-client}@tab yes
+@item pthread                       @tab yes                  @tab yes
+@end multitable
+
+@subsection Running @code{configure}
+
+Extract @code{methabot-1.7.0.tar.gz} and enter the created directory
+using the following commands:
+@example
+$ tar xzf methabot-1.7.0.tar.gz
+$ cd methabot-1.7.0
+@end example
+
+Now its time to configure what parts of the system you would like to install.
+For example, if you are installing a server you should most likely want to install @code{mn-slaved} and/or
+@code{mn-masterd} only, and @code{mb-client} on several other client computers.
+Or if you are only interested in the command line utility @code{mb}, you don't
+want to compile the server daemons.
+
+By default, the configure script will configure the command line utility only, 
+and the server daemons will not be compiled. The reason why they are not 
+compiled by default is because they are still experimental and will be moved
+to a separate package in the next release.
+@example
+$ ./configure
+@end example
+The above command will configure methabot for installing the command line tool 
+@code{mb} only.
+
+Configure for compiling and installing @code{mn-masterd} and @code{mn-slaved} 
+only using the following command:
+@example
+$ ./configure --enable-slave --enable-master --disable-cli
+@end example
+
+Notice the @code{--disable-cli} option, by disabling the compilation of the
+command line utility you don't have to have dependencies such as SpiderMonkey
+installed if you only want the server part installed.
+
+Configure for compiling and installing the client daemon using the following command:
+@example
+$ ./configure --enable-client
+@end example
+
+Finally, to get a list of all available options, run the following command:
+@example
+$ ./configure --help
+@end example
+
+@subsection Compiling and installing
+Once you have configured the package to fit your needs, its time to compile
+the code. The two following commands will compile and install the parts of 
+the system that you configured it to install. Note that you might need root
+privileges to invoke the second command:
+@example
+$ make
+$ make install
+@end example
+
+@section Installing phpMadMind
+phpMadMind is an official extension to the Methanol system. It is a 
+set of PHP scripts for administrating a Methanol system. You can find
+phpMadMind in the latest @code{methabot} package, under the @code{src/}
+directory.
+
+To install phpMadMind, you will first need a web server and PHP installed
+You will also need the PHP extension @code{simplexml} installed.
+
+Move the whole phpMadMind tree to any directory reachable from the web server,
+and open up @code{config.example.php}. This file is pretty straight-forward
+and you should be able to configure it on your own. Once you are done, save
+it as @code{config.php} and navigate to the directory using a web browser.
+
+You will be presented with a login screen, if you just installed your 
+system there will be a default user login with username "default" and password "default".
+
+@node Post-Installation Setup and Testing
+@chapter Post-Installation Setup and Testing
+@cindex setup, testing
+
+This chapter will help you set up and test an initial installation
+of the server programs included in Methanol.
+
+Installed on your system you should have two configuration files,
+@code{mn-masterd.example.conf} and @code{mn-slaved.example.conf}.
+Usually, they are installed to the @code{/etc} directory, but it
+might depend on how you invoked @code{configure} during the
+installation part. These two files are skeleton configuration files
+for running the system for the first time. Rename them so
+@code{mn-masterd} and @code{mn-slaved} can find them:
+@example
+$ cd /etc
+$ mv mn-masterd.example.conf mn-masterd.conf
+$ mv mn-slaved.example.conf mn-slaved.conf
+@end example
+
+These two files require information so that both server daemons
+will be able to connect to the MySQL server. If you have a MySQL
+database and user ready, then you can fill
+that information in right now and skip the next section.
+
+Security is always an important factor. Node
+authentication is used to
+prevent others from connecting a client or a slave server to your master
+server. When you
+start @code{mn-masterd} using the skeleton configuration, it will accept
+any client or slave authenticating with the username @emph{default} and
+password @emph{default}.
+
+As long as you are testing the system locally and trust your local
+users, you should however be safe.
+
+Refer to @ref{Configuration Files, @code{mn-masterd.conf}: Configuring the Master Server}
+for information about how to set up node authentication.
+
+@section Creating a MySQL Database and User
+To set up a database and user login for Methanol to use, first connect
+to the MySQL server, either through a web interface such as phpMyAdmin
+or from command line as shown below:
+@example
+$ mysql --user root --password
+@end example
+Now there are three MySQL statements that we need to execute. First, 
+you must create the actual database that Methanol uses, and secondly
+a user which Methanol will log in to MySQL using.
+@example
+mysql> CREATE DATABASE `methanol`;
+mysql> GRANT ALL PRIVILEGES ON `methanol`.* to `username`@@`localhost` 
+        IDENTIFIED BY 'password';
+mysql> FLUSH PRIVILEGES;
+@end example
+
+Substitute @emph{methanol} with a database name of choice, @emph{username}
+with a username of choice and @emph{password} with a password of choice. 
+Also, you might want to modify the @emph{localhost} to accept connections
+from other locations than the local host, depending on where you will be
+running the Methanol system and where the MySQL server is located.
+
+Use the information you provided here to fill in the options in 
+@code{mn-masterd.conf} and @code{mn-slaved.conf}.
+
+@section Example: Setup Master and Slave on a Single Server
+In many cases it might be feasible to run all system nodes on 
+a single server. This section will give an example of how to set 
+up such an environment.
+
+Please walk through the chapter on installing Methanol, and 
+configure Methanol with both the slave and the master daemon,
+and optionally the client daemon as well.
+
+This example system environment will also prepare the slave
+for executing hook scripts.
+
+@subsection Creating a System User
+Both @code{mn-slaved} and @code{mn-masterd} will change their
+user id to the id of the user "nobody". This prevents them from
+touching irrelevant parts of the system, if someone would
+find and exploit a bug in the system.
+
+A custom user still provides the same security as "nobody",
+but with support for executing hook scripts.
+
+This example will create one user account that will be shared
+by both the master and the slave, we'll call it "mn-example".
+
+@example
+$ useradd mn-example -m -s /sbin/nologin
+@end example
+
+The users home directory, @code{/home/mn-example}, will be used
+to structure the various parts of the system.
+
+@subsection Directory Structure
+Here is how we will layout this example system:
+@example
++ /home/mn-example/
++-- config/ : Configuration files should be put here
++-- run/    : Run-time files will be generated here
++-- hooks/  : All hook scripts should be put here
+@end example
+
+@example
+$ cd /home/mn-example
+$ mkdir config run hooks
+$ chown mn-example:mn-example *
+$ chmod 700 *
+@end example
+
+@subsection Configuration
+Set the @code{exec_dir} slave option to @code{/home/mn-example/run}.
+@code{user} and @code{group} should be set to @code{mn-example}, the
+user we created (and its corresponding group).
+
+@section Starting and Troubleshooting
+Start the master server by invoking:
+@example
+$ mn-masterd
+@end example
+The process will fork and run in the background. If an error
+occurs it will notify you and exit with a status code of 1.
+
+If an error occurs and you think the error message reported in the
+terminal doesn't help you find the cause of the error, then 
+check your system messages. Both @code{mn-masterd} and @code{mn-slaved}
+uses @emph{@code{syslog}} to log error messages and warnings.
+Where these messages are stored depends on your syslog installation,
+but most likely you get the latest messages by running:
+@example
+$ tail /var/log/messages
+@end example
+
+Once @code{mn-masterd} is up and running, you can try connecting
+@code{mn-slaved} to it. In this case, it is important that the @code{master_host}
+option in @code{mn-slaved.conf} matches the listening address of the 
+master server.
+
+@code{mn-slaved} will log its error and warning messages using 
+syslog as well.
+
+@cindex Installation
+
+@node Configuration Files
+@chapter Configuration Files
+@cindex configuration
+
+This chapter will help you understand how configuration files
+are structured, how to create your own configuration files and
+modify existing.
+
+@section Configuring @code{mb} and @code{mb-client}
+This section will help you understand how to configure Methabot
+and @code{mb-client}. Please note that if you are configuring
+@code{mb-client}, the configuration file should be put on the 
+same server as the active @code{mn-masterd}, and not on the local
+host running the instance of @code{mb-client}.
+
+@subsection Tutorial
+Currently there are two kinds of classes you can create objects
+from in configuration files; crawlers and filetypes. Crawlers
+specify  crawling behaviour, while each filetype specify properties
+for different filetypes such as audio files or HTML files.
+
+A basic configuration file needs at least one crawler and one
+filetype. The crawler should be named @code{default}, but the
+filetype can be named anything. It is also possible to define
+more than one crawler, but that topic will not be covered in 
+this tutorial.
+
+Some modules (@pxref{Modules}), such as lmm_mysql (@pxref{Modules, lmm_mysql}),
+register extra functionality. They do this by registering a
+so-called scope. A scope is similiar to a filetype or crawler
+object, but does not require a name.
+
+@subsubsection Defining a filetype
+The most basic filetype requires only a name, and can be
+defined like below: 
+@example
+filetype["example"]
+@{
+@}
+@end example
+
+This will actually create an object of the class "filetype",
+with the name "example".
+
+An empty filetype declaration isn't of much use. We must
+provide it with information about how to actually match
+URLs. This can be done in various ways, but @code{extensions} and
+@code{mimetypes} are the two primary options you should be playing with: 
+
+@example
+filetype["example"]
+@{
+    extensions = @{"png", "jpg", "jpeg"@};
+    mimetypes = @{"image/jpeg", "image/png"@};
+@}
+@end example
+
+As you can see, both @code{mimetypes} and @code{extensions}
+take arrays. The above code defines a filetype matching
+png and jpeg files.
+
+To try the filetype out, you must first include a default
+configuration. This is required because your current
+configuration does not define a default crawler. If you
+include "default.conf", you don't have to configure a
+crawler. Below is an example of including another
+configuration file: 
+
+@example
+include "default.conf"
+ 
+filetype["example"]
+@{
+    extensions = @{"png", "jpg", "jpeg"@};
+    mimetypes = @{"image/jpeg", "image/png"@};
+@}
+@end example
+
+The @code{include} directive (@pxref{Configuration Files, Directives})
+literally inserts the contents of another configuration file
+at the position of the @code{include} directive in this file.
+Think of it as @code{@@import} in CSS or #include in C.
+
+The @code{default.conf} configuration will define a default crawler,
+along with its own filetypes for crawling HTML and text files.
+Hence, if you include @code{default.conf} and run with your
+configuration, Methabot will be able to crawl websites and
+concentrate on finding the filetype you have declared.
+
+Now to try your configuration out, put the above code in a
+file named @code{example.conf}. Move @code{example.conf} to @code{~/.methabot/}
+and run the following command: 
+@example
+$ mb :example anyurl.com/path/
+@end example
+
+Methabot will in the above case look for @code{example.conf}
+first in @code{~/.methabot/} and then in the default
+installation path. In short, your custom configurations will
+override the installed configurations. 
+
+Unless the above command failed, you should see a list of all
+the jpeg and png files found on that URL. Use the @code{-D} option
+to specify the crawling depth: 
+
+@example
+$ mb :example anyurl.com/path/ -D 2
+@end example
+
+@subsubsection Setting the parser
+The @code{parser} option is used by filetypes to bind a parser.
+When a URL matches this filetype, the parser will be
+called to extract URLs or meta data. For example, you can
+use the built-in parser "css" to extract URLs such as
+images from CSS files: 
+@example
+include "default.conf"
+ 
+filetype["example"]
+@{
+    extensions = @{"png", "jpg", "jpeg"@};
+    mimetypes = @{"image/jpeg", "image/png"@};
+@}
+ 
+filetype["css"]
+@{
+    extensions = @{"css"@};
+    parser = "css";
+@}
+@end example
+Since @code{default.conf} defined filetypes for HTML crawling,
+you now extended its functionality by also adding support for
+crawling CSS files. Try running with the above configuration
+and you should see that Methabot will crawl HTML as expected,
+but also follow links to CSS files and try to find png and jpeg
+files there.
+
+@subsubsection Creating your own crawler
+Before we get started you must know that a crawler is merely a
+configuration, and not related to multi-threading in any way.
+A thread in libmetha is known as a worker, and workers can
+dynamically switch between different crawler configurations at
+any time. A crawler tells a worker exactly how to crawl a website,
+and what filetypes to look for.
+
+Creating a custom crawler is more complex than creating a filetype.
+That is why the extend keyword is available. Using extend, you can
+modify the default crawler instead of creating your own from scratch: 
+
+@example
+include "default.conf"
+
+extend: crawler["default"]
+@{
+@}
+@end example
+
+Inside the brackets you should set all variables you would like to
+modify from their default values. A tip is to have a look at the
+default configuration files and learn from them by example. 
+
+To modify the default depth limit of this crawler: 
+
+@example
+include "default.conf"
+ 
+extend: crawler["default"]
+@{
+        depth_limit = 2;
+@}
+@end example
+
+@subsection Keywords
+@subsubsection @code{extend}: Modify existing
+The extend keyword lets you modify an already defined object, and
+thus "extend" its attributes. This keyword is useful when you 
+for example include a default configuration file just to modify a
+tiny setting. Here is an example: 
+@example
+include "default.conf"
+ 
+extend: crawler["default"]
+@{
+        dynamic_url = "discard";
+@}
+ 
+extend: filetype["html"]
+@{
+        parser = "blah";
+@}
+@end example
+The above will modify the crawler "default" defined in
+@code{default.conf}, and also change the parser of the
+filetype "html".
+@subsubsection @code{override}: Replace existing
+The override keyword works just like extend, except for
+the detail that it clears all settings in the target
+object before modifying it, and thus it overrides
+its definition completely. Example: 
+
+@example
+include "default.conf"
+ 
+override: filetype["html"]
+@{
+    extensions = @{"html"@};
+    parser = "example";
+@}
+@end example
+
+@subsubsection @code{copy}: Copy existing to new
+Use this keyword to copy the settings from another
+filetype/crawler and base your object on those settings. Example:
+
+@example
+include "default.conf"
+ 
+filetype["html_2" copy "html"]
+@{
+    /* this defines the filetype "html_2" as a copy of "html" */
+    extensions = @{"example"@};
+    /* html_2 will now be identical to HTML, except for the extensions
+     * array which was explicitly set */
+@}
+@end example
+You can also combine the copy keyword with extend or override.
+Though note that even if you combine copy with extend, the
+result will be as if you combined copy with override, since
+copy replaces all empty values as well. Here is an example
+combining copy and override: 
+
+@example
+include "image.conf"
+include "audio.conf"
+ 
+override: filetype["image" copy "audio"]
+@{
+    /* 'image' is defined in image.conf, but since we copied 'audio'
+     * to it, the image filetype will now be identical to the audio
+     * filetype. Of course this does not make sense, it's just to
+     * demonstrate. */
+ 
+    mimetypes = @{"image/jpeg"@};
+    /* the 'image' filetype now requires audio file extensions with
+     * image file mimetypes! */
+@}
+@end example
+
+You can also simply copy filetypes to others, without modifying values,
+this can be pretty useful:
+
+@example
+include "default.conf"
+include "audio.conf"
+include "image.conf"
+ 
+override: filetype["audio" copy "image"];
+override: filetype["html" copy "image"];
+override: filetype["text" copy "image"];
+ 
+/* you now have a completely messed up configuration,
+ * thinking HTML files are image files and so on. :) */
+@end example
+
+@subsection Advanced Topics
+This section will describe some more advanced topics, you should have a 
+good understanding of the basics before you attempt these topics.
+
+@subsubsection Crawler Switching
+Crawler switching is a feature in libmetha allowing the active worker
+(thread) to switch to another configuration without restarting the
+crawling session or losing its current state. The switch itself is
+done very fast.
+
+The purpose of crawler switching is to allow the worker to crawl and
+parse different websites or different sub-pages in completely
+different ways. As an example, you could define a crawler specialized
+on crawling web forums, and one specialized in crawling RSS feeds or
+news sites, and then have a generic crawler for all other websites.
+
+Workers can switch between crawler configurations freely. This is done
+using the @code{crawler_switch} filetype option. A filetype that is
+forcing a switch to another crawler configuration is often referred
+to as a gateway filetype; when a worker matches a URL with this filetype
+it will switch its current crawler configuration to what's specified
+in @code{crawler_switch}.
+
+@subsubsection Handler Functions
+Handlers are called before the parsers. The purpose of a handler is a to download the data
+referenced by the target URL. The handler can, but should not, modify the downloaded data.
+
+A handler should make a decision whether the data should continue to the parser chain or
+be discarded, and return @emph{true} or @emph{false}.
+
+The relationship between handlers and parsers is demonstrated below:
+@example
+-------+
+Worker |                      +------+
+       +->-[URL]-->-Handler-+ |[URL] |
+       |                    +-+[data]|-->-Parser Chain-->-[URL List]->-+
+       |                      +------+                                 |
+       |                                                               v
+       |<-------<-------<-------<-------<-------<-------<-------<------+
+-------+
+@end example
+Handlers can be set using the @code{handler} filetype option or the @code{default_handler} 
+crawler option.
+
+A handler can, just like a parser, be either a C or a Javascript function.
+
+@section @code{mn-masterd.conf}: Configuring the Master Server
+@code{mn-masterd} is configured through @code{mn-masterd.conf}, normally
+this file can be found at @code{/etc/mn-masterd.conf}. The layout of this file
+is simple, all options should be put inside a scope named @code{master}, like this:
+@example
+master @{
+    listen = "127.0.0.1";
+@}
+@end example
+
+The above file will configure the listening address for the server.
+
+Since @code{mn-masterd} will require both @code{mn-slaved} and @code{mb-client}
+to authenticate once they have connected, you will of course need to 
+set authentication credentials.
+
+To define a slave named "default", with password set to "pwd", allowed to log in from 
+the local network:
+
+@example
+slave["default"]
+@{
+    password = "pwd";
+    allow = @{"192.168.1.0/24"@};
+@}
+@end example
+
+The @code{allow} option defines where the slave is allowed to connect from.
+This option expects an array of subnets, that is network addresses in combination
+with subnet masks. Note that if you omitt @code{allow} completely, all incoming
+connections will be accepted (assuming they login using the right password).
+
+@subsection @code{master} Option Reference
+@table @code
+@item listen
+Listen address (and port). Set to "host:port" or "host".
+@item config_file
+The global system configuration file. This file will be sent to all connected clients, it should
+define crawlers and filetypes.
+@item session_complete_hook
+Script to run when a session is completed.
+@item cleanup_hook
+Hook for when the slave exits. See @ref{System Hook Scripts, cleanup}.
+@item user
+Username of a local system user, the daemon will change its user id for security reasons. The value of this
+option should most likely be "nobody".
+@item group
+Username of a local system group. The value of this
+option should most likely be "nobody".
+@item mysql_host
+The host name or IP address of the MySQL server.
+@item mysql_user
+MySQL user name.
+@item mysql_pass
+MySQL user password.
+@item mysql_db
+The database to select. Make sure the user has full privileges to the database.
+@end table
+@subsection @code{user} Option Reference
+@subsection @code{slave} Option Reference
+
+@section @code{mn-slaved.conf}: Configuring the Slave Server
+@code{mn-slaved} loads its configuration file from @code{mn-slaved.conf}, which normally resides at
+@code{/etc/mn-slaved.conf}.
+@subsection Option Reference
+@table @code
+@item listen
+Listen address (and port). Set to "host:port" or "host".
+@item master_host
+Host IP address of the master server. If left unset, @code{127.0.0.1} is used.
+@item master_port
+Optional port number for the master server specified by @code{master_host}. If left
+unset, the default port number @code{5505} is used.
+@item master_user
+Username to use when loggin in to the master server. Corresponds to a @code{slave[]} 
+definition in @code{mn-masterd.conf}. If left unset, @code{default} is used.
+@item master_password
+Password to use when loggin in using the username specified with @code{master_user}.
+If left unset, @code{default} is used.
+@item user
+Username of a local system user, the daemon will change its user id for security reasons. The value of this
+option should most likely be "nobody", or a user you have specifically created for running
+@code{mn-slaved} as.
+@item group
+Username of a local system group. The value of this
+option should most likely be "nobody", or a group you have specifically created for running
+@code{mn-slaved} as.
+@item exec_dir
+If you have set up system hook scripts, the slave will download them to this directory before
+executing them. Make sure the user specified using @code{user} has permissions to execute
+and write to the directory.
+@item mysql_host
+The host name or IP address of the MySQL server.
+@item mysql_user
+MySQL user name.
+@item mysql_pass
+MySQL user password.
+@item mysql_db
+The database to select. Make sure the user has full privileges to the database.
+@end table
+
+@section @code{mb-client.conf}: Configuring the Client Daemon
+@code{mb-client.conf} is used to set up login credentials for
+the client daemon to use when logging in to the master server. 
+Configuration such as filetypes and crawlers can not be set in this 
+file, but they will be received from the master server once connected.
+
+If @code{mb-client.conf} can not be found by the daemon, it will
+assume the IP address of the master to be 127.0.0.1, the port 5505,
+username @emph{default} and password @emph{default}.
+@subsection Option Reference
+@table @code
+@item master_host
+Host IP address of the master server. If left unset, @code{127.0.0.1} is used.
+@item master_port
+Optional port number for the master server specified by @code{master_host}. If left
+unset, the default port number @code{5505} is used.
+@item master_username
+Username to use when loggin in to the master server. Corresponds to a @code{slave[]} 
+definition in @code{mn-masterd.conf}. If left unset, @code{default} is used.
+@item master_password
+Password to use when loggin in using the username specified with @code{master_user}.
+@end table
+
+
+@node Parsers
+@chapter Parsers
+
+The concept of @emph{parsers} is one of the most important in Methanol. A parser
+is responsible for extracting URLs, meta-data and settings attributes for each
+retrieved URL.
+
+Currently, a parser can be programmed in either C or Javascript.
+Multiple parsers can be chained and share the same data buffer.
+
+@section Parser Chaining
+Parser chaining is a concept introduced in libmetha-1.6.0. Parser
+chaining allows multiple parsers to work on the same data and share
+their modifications.
+
+@example
+data -> [ parser_1 -> parser_2 -> parser_3 ] -> output_data
+             |           |           |
+             v           v           v
+        +----------------------------------+
+        |        List of found URLs        |
+        +----------------------------------+
+@end example
+
+If parser_1 modified the data, parser_2 will receive the modified
+version, and so on. Parser chaining works with any type of parser,
+thus you can freely use either javascript or C parsers anywhere in
+the chain.
+
+To set a filetype to use a parser chain, you should provide it with
+a comma-separated list of parsers instead of just a single name of a
+parser. As an example, if you have created your own javascript parser
+that uses E4X to extract some metadata about a web page, you should
+most likely want to send the data (HTML) to the @code{xmlconv}
+builtin parser before your javascript parser receives it, to
+avoid XML errors caused by the HTML.
+
+@example
+filetype["your_filetype"]
+@{
+        parser = "xmlconv, yourfile.js/yourparser";
+@}
+@end example
+Furthermore, if your parser does not extract URLs but only extracts
+meta-information about the page, you can send it to the default
+HTML parser afterwards, which will extract all URLs for you: 
+@example
+filetype["your_filetype"]
+@{
+        parser = "xmlconv, yourfile.js/yourparser, html";
+@}
+@end example
+
+@section List of built-in parsers
+The following table lists the built-in parsers bundled with this version of @code{libmetha}.
+@table @code
+@item html
+The default HTML parser, designed for speed and fault-tolerance. Extracts URLs
+and adds them to the queue. If a @code{<style>} tag is encountered, the @code{css}
+parser is invoked on that piece. The same applies to plain text in the HTML source, 
+which is forwarded to the @code{text} parser.
+@item text
+The @code{text} parser extracts URLs by searching for strings identifying
+the start of a URL, such as @code{http://}.
+@item css
+The @code{css} parser is primarily intended for when image files are to be
+extracted or matched against a filetype. The  @code{css} parser will 
+parse CSS declarations, searching for anything that might be URL. @code{@@import}
+is supported.
+@item xmlconv
+Convert HTML/XHTML to valid XML. This parser is primarily used before data is
+sent to a Javascript parser that uses E4X to parse the data.
+@item utf8conv
+Identifies the character encoding by either looking at the @code{Content-Type} HTTP
+header field, or a @code{<meta>} HTML element, and then converts the full text to 
+UTF-8. Should be used when connected to a Methanol system, and also before 
+parsing data with Javascript parsers. Note that running @code{utf8conv} will not
+slow down the processing if the data is already UTF-8, so it's safe to always 
+call @code{utf8conv}.
+@item entityconv
+Convert SGML entities to their UTF-8 equivalent. Note that this function will always
+write UTF-8 characters to the buffer. Be on the safe side by first invoking @code{utf8conv},
+and then @code{entityconv}. 
+@item ftp
+Parses FTP directory listings. When libmetha crawls FTP-sites, the directory
+listings will be sent in plain text to the parser chain. Use this parser to
+safely handle lots of FTP server's differing directory listing outputs.
+@end table
+
+@cindex Parsers
+
+@node Scripting the Client
+@chapter Scripting the Client
+Methabot can be scripted in Javascript with E4X. Scripting is useful for 
+creating custom parsers and extracting data from complex XML.
+@section Global Functions
+Additionally to the standard Javascript functions, @code{libmetha} 
+provides the following functions that you can use:
+@table @code
+@item print (str)
+Print a message to the user, without an ending new-line character.
+@item println (str)
+Print a message to the user, with an ending new-line character.
+@item getc ()
+Get a character from @emph{stdin}.
+@item exec (command)
+Execute @code{command} in the default shell. Returns @emph{false} on error. Returns
+the full output (i.e. the data written to @emph{stdout} by the child process)
+as a @emph{string}.
+@end table
+@section The @code{this} object
+@code{this} is an object available in all javascript functions called
+by a worker in libmetha. @code{this} is almost like a direct connection
+to the actual worker. From @code{this}, you can get information such as HTTP
+status codes and the current URL. A complete table of what information you
+can get from it is displayed below.
+@table @code
+@item status_code
+A number value depending on the used protocol and what value the target server returned.
+For HTTP, this value should be 200 on success.
+@item content_type
+A string identifying the content type of the data in @code{this.data}.
+@item url
+The URL of the current page and the contents of @code{this.data}.
+@item data
+The raw data as returned from the server or a previous parser in the parser
+chain.
+@end table
+
+@subsection Member Functions
+@table @code
+@item set_attribute (name, value)
+Set the @code{name} attribute to @code{value} for the current 
+URL.
+@end table
+
+@section Tutorial: Writing a parser in Javascript with E4X
+E4X is a very easy-to-use but powerful and flexible extension to Javasceript. This tutorial
+will help you get started with writing parsers for @code{libmeth} clients using
+Javascript and E4X. You should have some previous experience with Javascript or
+another procedural programming/scripting language before attempting this tutorial.
+
+You should not attempt to understand this tutorial unless you are already familiar
+with configuration files, as otherwise you may have a hard time getting your script
+loaded into the client.
+
+This tutorial will use @code{mb} for testing, but the same code and configuration 
+files can be used for @code{mb-client} or any client linked with @code{libmetha}.
+
+@subsection Getting Started
+A loadable parser should be a normal javascript function expecting zero arguments.
+All necessary information you will need will be available in an object called @emph{this}.
+Your parser should return an array of all URLs it finds in the data, or null if
+no URL was found. The following snippet demonstrates a skeleton parser that
+always returns the same URL:
+@example
+function test_parser()
+@{
+    println("It works!");
+    return Array("http://google.com/");
+@}
+@end example
+While it is possible to return a string instead of an Array, it is good practice to always
+return an Array, even in cases when only one URL is to be returned.
+
+See @ref{Scripting the Client, Functions} for more information about @code{println}.
+
+To test the above parser, first save it to a file, let us say @code{example.js}. 
+Save @code{example.js} to the default script path. You can get the default script
+path by invoking @code{mb --info}, by default @code{mb} has its default script
+path set to @code{/usr/share/metha/scripts}, and also a user-specific script path
+at @code{~/.methabot/scripts/}. For a normal installation, save @code{example.js},
+to @code{~/.methabot/scripts/}. Create a simple configuration file that
+sets your parser as the default:
+@example
+include "default.conf"
+
+extend: filetype["html"]
+@{
+    parser = "example.js/test_parser";
+@}
+@end example
+
+Notice that when you set the @code{parser} option of the filetype, you
+must include the name of the javascript file and the name of the function, separated
+using a slash.
+
+Test your parser by running @code{mb} with your configuration file. If it "does not work",
+then try adding the @code{-e} flag to @code{mb} so Methabot won't discard google.com because
+it is an external URL.
+
+Now let us get back to @code{this}. @code{this} is an object directly connected 
+to a worker in @code{libmetha}. A worker is a thread, so each thread will have its
+own @code{this} object when running javascript code. The @code{this} object contains
+information such as the current URL and the current data downloaded from that URL.
+
+For a full explanation of the @code{this} object, see @ref{Scripting the Client, this object}.
+
+@subsection Extracting links using E4X
+Since most websites are coded in HTML, we will have to convert them to XML. Otherwise,
+we can't process them using E4X. @code{libmetha} comes with a default parser named
+@code{xmlconv} for converting HTML/XHTML to XML. To convert the data to XML before it
+reaches your parser, you will have to set up a parser chain:
+@example
+include "default.conf"
+
+extend: filetype["html"]
+@{
+    parser = "xmlconv, example.js/test_parser";
+@}
+@end example
+
+The order of the two parsers is important. Now that the data is converted to XML,
+we'll modify @code{test_parser} a little:
+@example
+function test_parser()
+@{
+    var xml = new XML(this.data);
+    return xml..a.@@href;
+@}
+@end example
+
+@code{this.data} is the data downloaded from the URL in question. @code{xmlconv} 
+will modify this.data before it is sent to your @code{test_parser}.
+
+An XML object is created from @code{this.data}. Elements in the XML can be accessed
+in a query-like manner -- have a look at the return statement. After @code{xml} we have
+two dots, think of them as an expression for "any element", or more specifically, 
+"any depth" in the XML tree. Next we have the @code{a}, and so far we thus have
+something like "look for an @code{<a>} element in any depth of the XML tree". Finally, @code{@@href}
+returns the @code{href} @emph{attribute} of the element. Since there can be multiple
+matches, i.e. many @code{<a>} elements, an XMLList is returned. An XMLList is almost like 
+an array.
+
+An important point to note once we've come this far is that you do not have to
+worry about the URL syntax of what you return. If you return "blah" and the current
+URL is @code{http://www.metha-sys.org/}, then @code{libmetha} will read your
+return value as @code{http://www.metha-sys.org/blah/}. It will also remove anchors (i.e. "...#blah") and
+normalize the URL in various ways. You don't have to do any sorting either, just return
+all the URLs you find and @code{libmetha} will sort them into filetypes.
+
+Back to the E4X, you can concat multiple XMLLists with the '+' operator:
+@example
+function test_parser()
+@{
+    var x = new XML(this.data);
+    return x..a.@@href + x..img.@@src;
+@}
+@end example
+
+@subsection Extracting specific data
+Now that we have talked about how to locate elements and how to access their
+attributes in E4X, let's move on to the next step; finding specific data. Sometimes
+it is prefered to extract one or several specific URLs from a specific part of the 
+document. Consider the following HTML code:
+@example
+<html>
+<head>
+    <title>Example</title>
+</head>
+<body>
+    <div id="header">
+        <h1>Example Website</h1>
+        <a href="uninteresting">Uninteresting</a>
+    </div>
+    <div id="content>
+        <h2>Interesting URLs</h2>
+        <a href="test1">test1</a>
+        <a href="test2">test2</a>
+    </div>
+</body>
+</html>
+@end example
+
+Say we want to extract the two URLs in the div with ID @emph{content}, we can use an E4X
+expression like this one:
+@example
+function test_parser()
+@{
+    var x = new XML(this.data);
+    println("Title of current URL: " + x..title); /* just for fun */
+    return x..div.(@@id == "content").a.@@href;
+@}
+@end example
+
+Don't forget to add @code{xmlconv} to your parser chain any time you want to
+parse HTML as XML.
+
+@section Init Functions
+Each crawler configuration can have its own @emph{init function}. The init function will
+run before any crawling is started. The purpose of the init function is
+to interpret initial input arguments and convert them to URLs. To visualize what's meant 
+with input arguments, consider the following Methabot command:
+@example
+$ mb -p 2 -d google.com test.com example.com
+@end example
+In this case, the input arguments are three; @emph{google.com}, @emph{test.com} and @emph{example.com}. 
+Normally, these arguments are URLs. However, an init function interpret the input
+arguments in any way and build its own URLs from them.
+
+By default, a default init function will be used. This default init function will
+convert the arguments you give it to full URLs. In the case above it would have
+been a matter of adding @emph{http://} in front of the all three only. This section
+will explain how to override the default init function and roll your own.
+
+@subsection Writing an Init Function
+To demonstrate the init function's usefulness, we will write a simple init function 
+that uses the arguments sent to it to build google search string.
+
+The first thing you should know is that unlike parser functions, init functions
+expect an argument. This argument will be the array of input data, one element
+per argument on command line. Thus, you will have to loop through the array
+to "build" your URLs for each argument. Here is a simple example:
+@example
+function init_example(args)
+@{
+    var ret = Array();
+
+    for (var x=0; x<args.length; x++)
+        ret.push("http://www.google.com/search?q="+args[x]);
+
+    return ret;
+@}
+@end example
+
+@subsection Testing an Init Function
+To test an init function, the @code{init} crawler option is used:
+@example
+crawler["..."]
+@{
+...
+    init = "js_file.js/init_example";
+...
+@}
+@end example
+
+@cindex scripting
+
+@node System Hook Scripts
+@chapter System Hook Scripts
+@cindex hooks
+
+This chapter will talk about hook scripts. Hook scripts are used in a
+Methanol system for customization.
+
+The scripts must be put on the master server. The master server will then distribute 
+the scripts to the slave servers. Finally, the slave server(s) will execute the 
+scripts.
+
+Depending on what hook you are writing a script for, the script will be 
+executed when different events occur in the system. For example, the @code{cleanup}
+hook is executed before a slave exits, and the @code{session_complete} hook is
+executed when a client has uploaded information about a web page.
+
+A system hook can be scripted in @emph{any} scripting language, as long as the language
+is supported by the slave server. This manual will however concentrate on hooks scripted
+in PHP.
+
+@section Script Files
+
+To set up a hook, set the hook's corresponding @code{mn-masterd} option to 
+the full path of the script file. The file can be placed anywhere on the system. Example:
+@example
+master @{
+    ...
+    session_complete_hook = "/home/example/example.php";
+    ...
+@}
+@end example
+
+The file itself, in this case @code{example.php}, must @emph{always} begin with a line telling
+the operating system which interpreter to use. This is the line you see in any script file 
+on your system. For example, a PHP file might begin with:
+@example
+#!/usr/bin/php
+... script ...
+@end example
+
+A bash file might begin with:
+@example
+#!/bin/bash
+... script ...
+@end example
+
+But the full path to the interpreter depends on where it is installed on the system.
+
+Please note that the scripts will be run on slave servers, and not on the master server,
+so even though you put the script on the master, you must make sure the path to 
+the interpreter applies on the slave server(s).
+
+@section Preparing @code{mn-slaved}
+@code{mn-slaved} will save the scripts received from the master to one file per script. To 
+do this, the slave must have write permissions to a directory in the system.
+
+First we create a directory where @code{mn-slaved} will be working. You can choose to create
+it anywhere in the system, as long as that partition is not mounted with @code{noexec}, but
+in this manual we will create it in @code{/var/mn-slaved}.
+@example
+$ mkdir /var/mn-slaved
+$ useradd mn-slaved -s /sbin/nologin -d /dev/null
+$ chown mn-slaved:mn-slaved /var/mn-slaved
+@end example
+
+Now we can set up @code{mn-slaved} to use our new system user when forking. Change the @code{user} and
+@code{group} options of in @code{mn-slaved.conf} to "mn-slaved" both.
+
+The @code{exec_dir} option must also be set, set it to the directory you created. To summarize:
+@example
+slave @{
+    ...
+    user = "mn-slaved";
+    group = "mn-slaved";
+    exec_dir = "/var/mn-slaved";
+@}
+@end example
+
+@section Supported Hooks
+This section will describe each hook, how it will be invoked and when it will be invoked.
+@subsection @code{cleanup}
+The @code{cleanup} hook will be invoked before the slave exits. This hook can be useful
+for cleaning up custom data added to the database, which is no longer needed after
+the slave has disconnected.
+
+See the @code{cleanup_hook} @code{mn-masterd} option.
+
+@subsection @code{session_complete}
+The @code{session_complete} hook will be invoked once a session completes.
+When a slave sends a URL to the client, a session is started.
+This session will last until the client is out of URLs again. Note that
+the definition of a session is dependant on how the clients' crawlers are configured,
+such as depth limit.
+
+See the @code{session_complete_hook} @code{mn-masterd} option.
+
+
+@node Modules
+@chapter Modules
+
+@section Supported modules
+@subsection @code{lmm_mysql} -- Javascript-MySQL Bindings
+@subsection @code{lmm_hash} -- Functions for calculating checksums
+@subsection @code{lmm_file} -- C-like file and directory handling
+@section Module C API
+@subsection Example parser: Convert to lowercase
+@subsection Creating a simple build system
+@subsection Adding Javascript functions and classes
+
+@cindex Modules
+
+@node Methanol Protocol
+@chapter Methanol Protocol
+
+@cindex protocol
+
+@node Copying
+@chapter Copying
+@insertcopying
+@cindex Copying
+
+@node Robots Exclusion Standard
+@appendix Robots Exclusion Standard
+
+Web crawlers such as @code{mb} and @code{mb-client}
+can download a file named @code{robots.txt} from the root directory of a web server. This file 
+will contain rules as to which pages or parts of the website the bot may access and not. This
+system is known as the robots exclusion standard.
+
+Enabling support for robots.txt is recommended when doing heavy crawling.
+You can enable @code{robots.txt} from command line using:
+@example
+$ mb --robotstxt
+@end example
+You can also enable it per-crawler from a configuration file:
+@example
+crawler["example"]
+@{
+    robotstxt = true;
+@}
+@end example
+ 
+@code{libmetha} has wide support for the robots exclusion standard. 
+The following table lists which directives that are supported.
+
+@table @code
+@item User-agent
+This directive is used to restrict the rules to a specific web crawler with a 
+user agent matching the given value. Some websites might choose to block
+one bot from crawling a specific path, but allow another bot.
+
+@example
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Methabot
+Allow: /
+@end example
+@item Disallow
+Thsi directive is used to disallow the web crawling from accessing a part of the website matching
+the given pattern. Example:
+@example
+Disallow: /private-directory/
+@end example
+@item Allow
+Used in combination with disallow to allow access to a document or path inside the disallow-pattern.
+@example
+Disallow: /private/
+Allow: /private/public.html
+@end example
+@emph{Note that this is a non-standard extensions, though it is supported by most web crawlers.}
+@end table
+
+@c @node Installing Dependencies
+@c @appendix Installing Dependencies
+@c Dependencies can be installed differently depending on what system
+@c you are running. Most Linux systems have package managers which make it
+@c easier for you to install dependencies, and also does automatic
+@c dependency calculation.
+@c 
+@c Below is a table of the names of the packages that you need to install
+@c on each system using the system's package manager to be able to 
+@c build and install Methanol programs.
+
+@c @section Package Table
+@c @multitable
+@c @item                @tab Gentoo @tab Arch           @tab Deian
+@c @item @libmysqlclient @tab mysql  @tab libmysqlclient @tab libmysqlclient
+@c @item SpiderMonkey   @tab spidermonkey
+@c @end multitable
+@c @section Manual Installation
+
+@node Index
+@unnumbered Index
+
+@printindex cp
+
+@bye

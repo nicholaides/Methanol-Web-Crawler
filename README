@@ -1,0 +1,35 @@
+Readme - The Methabot Project
+
+  Thank you for downloading  Methabot. If got your copy from git 
+or the subversion repository,  don't forget to invoke autogen.sh
+from the command line before attempting to configure and install
+this package.
+
+  To compile and  install  Methabot,  invoke the following three 
+commands:
+
+  $ ./configure
+  $ make
+  $ make install
+
+  Note that you might need root  privileges for the last command
+to work, depending on  where  you  are installing.
+
+  To get help,  support  or  find  tutorials  and how-to guides,
+please visit the project's website at:
+
+  http://bithack.se/projects/methabot/
+
+  For Methanol-related issues, have a look at:
+
+  http://metha-sys.org/
+
+Developers
+
+  Compile Methabot/libmetha for  debugging by enabling the debug
+configre-time option.
+
+  $ ./configure --enable-debug
+
+  The above command will  enable  debugging  output and turn off 
+compiler optimizations.
